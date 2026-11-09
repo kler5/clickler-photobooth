@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -6,148 +7,242 @@
   <meta name="theme-color" content="#17151b">
   <title>CLICKLER PHOTOBOOTH</title>
   <link rel="stylesheet" href="style.css">
+
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/gifshot@0.4.5/build/gifshot.min.js"></script>
 </head>
 <body>
-  <header class="topbar">
-    <a class="brand" href="#" aria-label="Clickler home">
-      <span class="brand-mark">C<span>✦</span></span>
-      <span><b>CLICKLER</b><small>PHOTOBOOTH</small></span>
-    </a>
-    <nav>
-      <button class="nav-btn active" data-page="booth">Booth</button>
-      <button class="nav-btn" data-page="gallery">Gallery <span id="galleryCount" class="count">0</span></button>
-      <button class="nav-btn" data-page="settings">Settings</button>
-    </nav>
-  </header>
 
-  <main>
-    <section id="page-booth" class="page active">
-      <div id="welcome" class="welcome panel">
-        <div class="eyebrow">YOUR MOMENT. YOUR MEMORY.</div>
-        <h1>Make a little<br><em>memory.</em></h1>
-        <p>Strike a pose, take your shots, and keep your photos with you.</p>
-        <div class="welcome-actions">
-          <button id="startBtn" class="btn primary large">START PHOTOBOOTH <span>→</span></button>
-          <button id="quickGallery" class="btn ghost">VIEW GALLERY</button>
+<header class="topbar">
+  <a class="brand" href="#">
+    <span class="brand-mark">C<span>✦</span></span>
+    <span><b>CLICKLER</b><small>PHOTOBOOTH</small></span>
+  </a>
+  <nav>
+    <button class="nav-btn active" data-page="booth">Booth</button>
+    <button class="nav-btn" data-page="gallery">Gallery <span id="galleryCount" class="count">0</span></button>
+    <button class="nav-btn" data-page="settings">Settings</button>
+  </nav>
+</header>
+
+<main>
+<section id="page-booth" class="page active">
+
+  <div id="welcome" class="welcome panel">
+    <div class="eyebrow">YOUR MOMENT. YOUR MEMORY.</div>
+    <h1>Make a little<br><em>memory.</em></h1>
+    <p>Strike a pose, take your shots, and keep your photos with you.</p>
+    <div class="welcome-actions">
+      <button id="startBtn" class="btn primary large">START PHOTOBOOTH →</button>
+      <button id="quickGallery" class="btn ghost">VIEW GALLERY</button>
+    </div>
+    <div class="welcome-foot">DIGITAL COPY BOOTH • PRINT READY</div>
+  </div>
+
+  <div id="studio" class="studio hidden">
+    <div class="studio-head">
+      <div><div class="eyebrow">PHOTO SESSION</div><h2>Ready when you are.</h2></div>
+      <button id="backWelcome" class="btn ghost small-btn">← HOME</button>
+    </div>
+
+    <div class="studio-grid">
+      <section class="panel camera-panel">
+        <div class="camera-top">
+          <span class="status"><i id="cameraDot"></i><span id="cameraStatus">Camera not connected</span></span>
+          <select id="cameraSelect"><option value="">Choose camera</option></select>
         </div>
-        <div class="welcome-foot"><span class="live-dot"></span> DIGITAL COPY BOOTH <span>•</span> PRINT READY</div>
-      </div>
 
-      <div id="studio" class="studio hidden">
-        <div class="studio-head">
-          <div><div class="eyebrow">PHOTO SESSION</div><h2>Ready when you are.</h2></div>
-          <button id="backWelcome" class="btn ghost small-btn">← HOME</button>
-        </div>
-        <div class="studio-grid">
-          <section class="panel camera-panel">
-            <div class="camera-top">
-              <span class="status"><i id="cameraDot"></i><span id="cameraStatus">Camera not connected</span></span>
-              <select id="cameraSelect" aria-label="Select camera"><option value="">Choose camera</option></select>
-            </div>
-            <div class="camera-stage">
-              <video id="video" autoplay playsinline muted></video>
-              <canvas id="captureCanvas" class="hidden"></canvas>
-              <div id="cameraPlaceholder" class="camera-placeholder">
-                <div class="camera-icon">◎</div><b>Your camera preview</b>
-                <span>Connect a webcam or a camera that appears as a webcam.</span>
-                <button id="connectCamera" class="btn primary">CONNECT CAMERA</button>
-              </div>
-              <div id="countdown" class="countdown hidden">3</div>
-              <div id="flash" class="flash"></div>
-            </div>
-            <div class="camera-controls">
-              <label>Timer
-                <select id="timerSelect"><option value="0">No timer</option><option value="3" selected>3 seconds</option><option value="5">5 seconds</option><option value="10">10 seconds</option></select>
-              </label>
-              <label>Number of photos
-                <select id="photoCount"><option>1</option><option>2</option><option selected>4</option><option>6</option><option>8</option></select>
-              </label>
-              <button id="takeBtn" class="btn primary shutter" disabled><span></span> TAKE PHOTOS</button>
-            </div>
-            <p class="micro-note">Tip: Allow camera access when your browser asks. Use Chrome or Edge on the booth laptop.</p>
-          </section>
+        <div class="camera-stage">
+          <video id="video" autoplay playsinline muted></video>
+          <canvas id="captureCanvas" class="hidden"></canvas>
 
-          <aside class="panel setup-panel">
-            <div class="section-title"><div><div class="eyebrow">YOUR DESIGN</div><h3>Make it yours</h3></div><span class="pill">LIVE SETUP</span></div>
-            <label class="field">Photo template
-              <select id="templateSelect">
-                <option value="classic">Classic · Cream</option>
-                <option value="pink">K-style · Blush</option>
-                <option value="mono">Classic · Monochrome</option>
-                <option value="blue">Blue · Ice</option>
-                <option value="custom">Uploaded template</option>
-              </select>
-            </label>
-            <label class="field">Event name<input id="eventName" maxlength="48" placeholder="e.g. Birthday Celebration"></label>
-            <label class="field">Event date<input id="eventDate" type="date"></label>
-            <label class="field">Upload overlay / frame (PNG recommended)<input id="templateFile" type="file" accept="image/png,image/jpeg"></label>
-            <div class="adjust-box">
-              <b>Photo placement</b><p>After uploading a template, select a photo slot on the preview and adjust its position and size.</p>
-              <div class="adjust-grid">
-                <label>X <input id="slotX" type="range" min="0" max="100" value="50"></label>
-                <label>Y <input id="slotY" type="range" min="0" max="100" value="50"></label>
-                <label>Size <input id="slotSize" type="range" min="50" max="150" value="100"></label>
-              </div>
-              <div id="slotButtons" class="slot-buttons"></div>
-            </div>
-            <div class="template-preview-wrap"><canvas id="templatePreview" width="360" height="520"></canvas><span class="micro-note">Preview updates as you customize.</span></div>
-          </aside>
-        </div>
-      </div>
-
-      <div id="results" class="results hidden">
-        <div class="studio-head"><div><div class="eyebrow">SESSION COMPLETE</div><h2>That’s a keeper.</h2></div><button id="newSession" class="btn ghost small-btn">NEW SESSION</button></div>
-        <div class="results-grid">
-          <div class="panel result-preview"><canvas id="resultCanvas" width="900" height="1300"></canvas></div>
-          <div class="panel result-actions">
-            <div class="eyebrow">YOUR PHOTOS ARE READY</div><h3>Take the memory with you.</h3>
-            <p>Scan the QR code using mobile data or Wi-Fi to open and download your photo.</p>
-            <div id="qrArea" class="qr-area"><div id="qrCode"></div><span id="qrStatus">Preparing share link…</span></div>
-            <button id="downloadResult" class="btn primary full">↓ DOWNLOAD PHOTO</button>
-            <button id="printResult" class="btn secondary full">▣ PRINT PHOTO</button>
-            <button id="makeGif" class="btn secondary full">✧ CREATE GIF</button>
-            <button id="downloadGif" class="btn ghost full hidden">↓ DOWNLOAD GIF</button>
-            <p id="saveStatus" class="micro-note"></p>
+          <div id="cameraPlaceholder" class="camera-placeholder">
+            <div class="camera-icon">◎</div>
+            <b>Your camera preview</b>
+            <span>Connect your camera.</span>
+            <button id="connectCamera" class="btn primary">CONNECT CAMERA</button>
           </div>
+
+          <div id="countdown" class="countdown hidden">3</div>
+          <div id="flash" class="flash"></div>
         </div>
+
+        <div class="camera-controls">
+          <label>Timer
+            <select id="timerSelect">
+              <option value="0">No timer</option>
+              <option value="3" selected>3 seconds</option>
+              <option value="5">5 seconds</option>
+              <option value="10">10 seconds</option>
+            </select>
+          </label>
+
+          <label>Number of photos
+            <select id="photoCount">
+              <option>1</option>
+              <option>2</option>
+              <option selected>4</option>
+              <option>6</option>
+              <option>8</option>
+            </select>
+          </label>
+
+          <button id="takeBtn" class="btn primary shutter" disabled>TAKE PHOTOS</button>
+        </div>
+        <p class="micro-note">Allow camera access when requested.</p>
+      </section>
+
+      <aside class="panel setup-panel">
+        <div class="section-title">
+          <div><div class="eyebrow">YOUR DESIGN</div><h3>Make it yours</h3></div>
+          <span class="pill">LIVE SETUP</span>
+        </div>
+
+        <label class="field">Photo template
+          <select id="templateSelect">
+            <option value="classic">Classic · Cream</option>
+            <option value="pink">K-style · Blush</option>
+            <option value="mono">Monochrome</option>
+            <option value="blue">Blue · Ice</option>
+            <option value="custom">Uploaded template</option>
+          </select>
+        </label>
+
+        <label class="field">Event name
+          <input id="eventName" maxlength="48" placeholder="Birthday Celebration">
+        </label>
+
+        <label class="field">Event date
+          <input id="eventDate" type="date">
+        </label>
+
+        <label class="field">Upload overlay / frame
+          <input id="templateFile" type="file" accept="image/png,image/jpeg">
+        </label>
+
+        <div class="adjust-box">
+          <b>Photo placement</b>
+          <p>Adjust your photo position and size.</p>
+          <div class="adjust-grid">
+            <label>X <input id="slotX" type="range" min="0" max="100" value="50"></label>
+            <label>Y <input id="slotY" type="range" min="0" max="100" value="50"></label>
+            <label>Size <input id="slotSize" type="range" min="50" max="150" value="100"></label>
+          </div>
+          <div id="slotButtons" class="slot-buttons"></div>
+        </div>
+
+        <div class="template-preview-wrap">
+          <canvas id="templatePreview" width="360" height="520"></canvas>
+          <span class="micro-note">Live preview</span>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div id="results" class="results hidden">
+    <div class="studio-head">
+      <div><div class="eyebrow">SESSION COMPLETE</div><h2>That's a keeper.</h2></div>
+      <button id="newSession" class="btn ghost small-btn">NEW SESSION</button>
+    </div>
+
+    <div class="results-grid">
+      <div class="panel result-preview">
+        <canvas id="resultCanvas" width="900" height="1300"></canvas>
       </div>
+
+      <div class="panel result-actions">
+        <div class="eyebrow">YOUR PHOTOS ARE READY</div>
+        <h3>Take the memory with you.</h3>
+        <p>Scan the QR using mobile data or Wi-Fi.</p>
+
+        <div id="qrArea" class="qr-area">
+          <div id="qrCode"></div>
+          <span id="qrStatus">Preparing share link...</span>
+        </div>
+
+        <button id="downloadResult" class="btn primary full">DOWNLOAD PHOTO</button>
+        <button id="printResult" class="btn secondary full">PRINT PHOTO</button>
+        <button id="makeGif" class="btn secondary full">✧ CREATE GIF</button>
+        <button id="downloadGif" class="btn ghost full hidden">DOWNLOAD GIF</button>
+
+        <p id="saveStatus" class="micro-note"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="page-gallery" class="page hidden">
+  <div class="page-heading">
+    <div class="eyebrow">ALL THE GOOD TIMES</div>
+    <h1>Your <em>gallery.</em></h1>
+    <p>Photos saved on this booth device.</p>
+  </div>
+  <div id="galleryGrid" class="gallery-grid"></div>
+  <div id="emptyGallery" class="empty-state">
+    <div>▧</div>
+    <h3>No memories just yet.</h3>
+    <p>Your sessions will appear here.</p>
+    <button class="btn primary" id="galleryStart">START A SESSION</button>
+  </div>
+</section>
+
+<section id="page-settings" class="page hidden">
+  <div class="page-heading">
+    <div class="eyebrow">BOOTH CONFIGURATION</div>
+    <h1>Studio <em>settings.</em></h1>
+    <p>Configure online QR delivery.</p>
+  </div>
+
+  <div class="settings-grid">
+    <section class="panel">
+      <div class="eyebrow">BRAND IDENTITY</div>
+      <h3>Your booth logo</h3>
+      <div class="logo-preview" id="logoPreview">
+        <span class="brand-mark">C<span>✦</span></span>
+        <b>CLICKLER PHOTOBOOTH</b>
+      </div>
+      <label class="field">Upload logo
+        <input id="logoFile" type="file" accept="image/*">
+      </label>
+      <button id="removeLogo" class="btn ghost">REMOVE LOGO</button>
     </section>
 
-    <section id="page-gallery" class="page hidden">
-      <div class="page-heading"><div class="eyebrow">ALL THE GOOD TIMES</div><h1>Your <em>gallery.</em></h1><p>Photos saved on this booth device appear here.</p></div>
-      <div id="galleryGrid" class="gallery-grid"></div>
-      <div id="emptyGallery" class="empty-state"><div>▧</div><h3>No memories just yet.</h3><p>Your photo sessions will show up here.</p><button class="btn primary" id="galleryStart">START A SESSION</button></div>
+    <section class="panel">
+      <div class="eyebrow">ONLINE QR DELIVERY</div>
+      <h3>Connect photo sharing</h3>
+      <p class="micro-note">
+        Create a PUBLIC Supabase Storage bucket named
+        <b>booth-photos</b>. Paste your Project URL and anon/publishable key.
+      </p>
+
+      <label class="field">Project URL
+        <input id="supabaseUrl" placeholder="https://your-project.supabase.co">
+      </label>
+
+      <label class="field">Anon / publishable key
+        <textarea id="supabaseKey" rows="3" placeholder="Paste your public key"></textarea>
+      </label>
+
+      <button id="saveCloud" class="btn primary">SAVE QR SETTINGS</button>
+      <p id="cloudStatus" class="micro-note">Online QR sharing is not configured.</p>
     </section>
 
-    <section id="page-settings" class="page hidden">
-      <div class="page-heading"><div class="eyebrow">BOOTH CONFIGURATION</div><h1>Studio <em>settings.</em></h1><p>Set your logo and configure online QR photo delivery.</p></div>
-      <div class="settings-grid">
-        <section class="panel">
-          <div class="eyebrow">BRAND IDENTITY</div><h3>Your booth logo</h3>
-          <div class="logo-preview" id="logoPreview"><span class="brand-mark">C<span>✦</span></span><b>CLICKLER PHOTOBOOTH</b></div>
-          <label class="field">Upload your logo (PNG with transparent background works best)<input id="logoFile" type="file" accept="image/*"></label>
-          <button id="removeLogo" class="btn ghost">REMOVE LOGO</button>
-        </section>
-        <section class="panel">
-          <div class="eyebrow">ONLINE QR DELIVERY</div><h3>Connect photo sharing</h3>
-          <p class="micro-note">To let customers scan from any network, the finished photo must be uploaded online. Create a free Supabase project, create the public bucket using <code>supabase-setup.sql</code>, then paste your Project URL and anon/publishable key below. Only the finished photo is uploaded for sharing; the full gallery stays in this browser.</p>
-          <label class="field">Project URL<input id="supabaseUrl" placeholder="https://your-project.supabase.co"></label>
-          <label class="field">Anon / publishable key<textarea id="supabaseKey" rows="3" placeholder="Paste your public anon key"></textarea></label>
-          <button id="saveCloud" class="btn primary">SAVE QR SETTINGS</button>
-          <p id="cloudStatus" class="micro-note">Online QR sharing is not configured.</p>
-        </section>
-        <section class="panel wide">
-          <div class="eyebrow">IMPORTANT CAMERA NOTE</div><h3>Webcam and Canon DSLR support</h3>
-          <p>This website can use a normal USB webcam, built-in camera, or a DSLR that your computer exposes as a webcam. For a Canon EOS 2000D, install Canon EOS Webcam Utility if supported by your camera/OS, then select its virtual camera here.</p>
-          <p><b>Direct USB shutter control is different:</b> a GitHub Pages website cannot directly control every Canon DSLR over USB. For reliable EOS 2000D tethered capture through USB, a separate local capture bridge / compatible tethering software is needed. This starter version captures from browser camera devices.</p>
-        </section>
-      </div>
+    <section class="panel wide">
+      <div class="eyebrow">CAMERA NOTE</div>
+      <h3>Webcam and Canon DSLR</h3>
+      <p>This version captures from browser camera devices. A DSLR must appear as a webcam device for browser capture.</p>
     </section>
-  </main>
-  <footer><span>CLICKLER PHOTOBOOTH</span><span>MADE FOR THE MOMENTS THAT MATTER ✦</span></footer>
-  <div id="toast" class="toast"></div>
-  <script src="app.js"></script>
+  </div>
+</section>
+</main>
+
+<footer>
+  <span>CLICKLER PHOTOBOOTH</span>
+  <span>MADE FOR THE MOMENTS THAT MATTER ✦</span>
+</footer>
+
+<div id="toast" class="toast"></div>
+
+<script src="app.js"></script>
 </body>
 </html>
