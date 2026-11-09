@@ -1,6 +1,9 @@
 
 const $ = id => document.getElementById(id);
 
+// IMPORTANT: Must match your exact Supabase Storage bucket name.
+const SUPABASE_BUCKET = "booth-photos";
+
 const state = {
   stream: null,
   photos: [],
@@ -22,10 +25,6 @@ const palettes = {
 let slotAdjust = {};
 let currentCanvasBlob = null;
 
-// =====================================
-// GENERAL FUNCTIONS
-// =====================================
-
 function toast(message) {
   const t = $("toast");
   t.textContent = message;
@@ -33,7 +32,7 @@ function toast(message) {
   setTimeout(() => t.classList.remove("show"), 2600);
 }
 
-// FIXED PAGE NAVIGATION
+// PAGE NAVIGATION
 function showPage(name) {
   document.querySelectorAll(".page").forEach(p => {
     p.classList.remove("active");
@@ -41,7 +40,6 @@ function showPage(name) {
   });
 
   const target = $("page-" + name);
-
   if (!target) return;
 
   target.classList.remove("hidden");
@@ -83,7 +81,6 @@ $("newSession").onclick = () => {
   $("studio").classList.remove("hidden");
 
   $("takeBtn").disabled = !state.stream;
-
   drawTemplatePreview();
 };
 
@@ -96,12 +93,14 @@ function startStudio() {
   refreshCameras();
 }
 
-// =====================================
 // CAMERA
-// =====================================
-
 async function refreshCameras() {
   try {
+    if (!navigator.mediaDevices?.enumerateDevices) {
+      $("cameraStatus").textContent = "Camera requires HTTPS.";
+      return;
+    }
+
     const devices = await navigator.mediaDevices.enumerateDevices();
     const cams = devices.filter(d => d.kind === "videoinput");
 
@@ -124,7 +123,6 @@ async function refreshCameras() {
     if (!cams.length) {
       $("cameraStatus").textContent = "No camera detected";
     }
-
   } catch (e) {
     $("cameraStatus").textContent = "Camera permission required";
   }
@@ -133,6 +131,10 @@ async function refreshCameras() {
 async function connectCamera() {
   try {
     stopCamera();
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Camera requires HTTPS.");
+    }
 
     const id = $("cameraSelect").value;
 
@@ -164,7 +166,8 @@ async function connectCamera() {
     await refreshCameras();
 
   } catch (e) {
-    toast("Camera could not connect. Check browser permission and camera use.");
+    console.error("Camera error:", e);
+    toast("Camera could not connect. Check permission.");
     $("cameraStatus").textContent = "Camera connection failed";
   }
 }
@@ -192,10 +195,7 @@ if (navigator.mediaDevices?.addEventListener) {
   navigator.mediaDevices.addEventListener("devicechange", refreshCameras);
 }
 
-// =====================================
 // PHOTO CAPTURE
-// =====================================
-
 function delay(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
@@ -211,14 +211,12 @@ async function takeSession() {
 
   try {
     for (let i = 0; i < count; i++) {
-
       if (timer) {
         for (let n = timer; n > 0; n--) {
           $("countdown").textContent = n;
           $("countdown").classList.remove("hidden");
           await delay(1000);
         }
-
         $("countdown").classList.add("hidden");
       }
 
@@ -229,14 +227,11 @@ async function takeSession() {
       c.height = v.videoHeight || 960;
 
       const cx = c.getContext("2d");
-
       cx.translate(c.width, 0);
       cx.scale(-1, 1);
       cx.drawImage(v, 0, 0, c.width, c.height);
 
-      const data = c.toDataURL("image/jpeg", 0.92);
-
-      state.photos.push(data);
+      state.photos.push(c.toDataURL("image/jpeg", 0.92));
 
       $("flash").classList.remove("go");
       void $("flash").offsetWidth;
@@ -247,7 +242,7 @@ async function takeSession() {
       if (i < count - 1) await delay(450);
     }
 
-    buildResult();
+    await buildResult();
 
   } catch (e) {
     console.error(e);
@@ -258,10 +253,7 @@ async function takeSession() {
 
 $("takeBtn").onclick = takeSession;
 
-// =====================================
-// IMAGE AND TEMPLATE FUNCTIONS
-// =====================================
-
+// IMAGE AND TEMPLATE
 function loadImage(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -356,7 +348,6 @@ async function drawDesign(canvas, photoData, preview = false) {
     ctx.fillRect(b.x - 5, b.y - 5, b.w + 10, b.h + 10);
 
     const img = await loadImage(photoData[i]);
-
     cover(ctx, img, b.x, b.y, b.w, b.h, adj);
 
     if (preview && i === state.selectedSlot) {
@@ -406,18 +397,15 @@ async function drawTemplatePreview() {
   );
 
   await drawDesign(canvas, placeholders, true);
-
   renderSlotButtons(count);
 }
 
 function placeholder(i) {
   const c = document.createElement("canvas");
-
   c.width = 400;
   c.height = 300;
 
   const x = c.getContext("2d");
-
   x.fillStyle = "#d9d1cf";
   x.fillRect(0, 0, 400, 300);
 
@@ -435,13 +423,11 @@ function renderSlotButtons(count) {
 
   for (let i = 0; i < count; i++) {
     const b = document.createElement("button");
-
     b.textContent = `PHOTO ${i + 1}`;
     b.classList.toggle("selected", i === state.selectedSlot);
 
     b.onclick = () => {
       state.selectedSlot = i;
-
       const a = slotAdjust[i] || {};
 
       $("slotX").value = a.x ?? 50;
@@ -482,36 +468,37 @@ $("templateFile").onchange = async e => {
   $("templateSelect").value = "custom";
 
   drawTemplatePreview();
-
   toast("Template uploaded.");
 };
 
 function fileData(file) {
   return new Promise((res, rej) => {
     const r = new FileReader();
-
     r.onload = () => res(r.result);
     r.onerror = rej;
-
     r.readAsDataURL(file);
   });
 }
 
-// =====================================
-// PHOTO RESULT
-// =====================================
-
+// BUILD RESULT
 async function buildResult() {
   $("studio").classList.add("hidden");
   $("results").classList.remove("hidden");
 
-  const canvas = $("resultCanvas");
+  $("qrCode").innerHTML = "";
+  $("qrStatus").textContent = "Uploading photo and preparing QR...";
+  $("saveStatus").textContent = "Saving photo...";
 
+  const canvas = $("resultCanvas");
   await drawDesign(canvas, state.photos);
 
-  currentCanvasBlob = await new Promise(r => {
-    canvas.toBlob(r, "image/jpeg", 0.94);
+  currentCanvasBlob = await new Promise(resolve => {
+    canvas.toBlob(resolve, "image/jpeg", 0.94);
   });
+
+  if (!currentCanvasBlob) {
+    throw new Error("Could not create final photo.");
+  }
 
   state.currentResult = canvas.toDataURL("image/jpeg", 0.94);
 
@@ -524,18 +511,15 @@ async function buildResult() {
   };
 
   await saveLocal(record);
-
   $("galleryCount").textContent = getLocal().length;
 
-  const publicUrl = await uploadCloud(record);
+  loadCloudSettings();
 
+  const publicUrl = await uploadCloud(record);
   await makeQr(publicUrl);
 }
 
-// =====================================
 // LOCAL GALLERY
-// =====================================
-
 function getLocal() {
   try {
     return JSON.parse(localStorage.getItem("clickler_gallery") || "[]");
@@ -546,22 +530,25 @@ function getLocal() {
 
 async function saveLocal(record) {
   const list = getLocal();
-
   list.unshift(record);
 
-  localStorage.setItem(
-    "clickler_gallery",
-    JSON.stringify(list.slice(0, 80))
-  );
+  try {
+    localStorage.setItem(
+      "clickler_gallery",
+      JSON.stringify(list.slice(0, 80))
+    );
 
-  $("saveStatus").textContent =
-    "Saved in this booth browser. Uploading finished photo...";
+    $("saveStatus").textContent =
+      "Photo saved in this booth browser. Uploading to cloud...";
+
+  } catch (e) {
+    console.error("Local save failed:", e);
+    $("saveStatus").textContent =
+      "Browser storage is full. Cloud upload will still be attempted.";
+  }
 }
 
-// =====================================
-// SUPABASE CLOUD UPLOAD
-// =====================================
-
+// SUPABASE SETTINGS
 function loadCloudSettings() {
   try {
     const c = JSON.parse(
@@ -573,14 +560,19 @@ function loadCloudSettings() {
       key: c.key || ""
     };
 
-    $("supabaseUrl").value = state.cloud.url;
-    $("supabaseKey").value = state.cloud.key;
+    if ($("supabaseUrl") && document.activeElement !== $("supabaseUrl")) {
+      $("supabaseUrl").value = state.cloud.url;
+    }
 
-    if (state.cloud.url && state.cloud.key) {
-      $("cloudStatus").textContent = "Cloud settings loaded.";
-    } else {
+    if ($("supabaseKey") && document.activeElement !== $("supabaseKey")) {
+      $("supabaseKey").value = state.cloud.key;
+    }
+
+    if ($("cloudStatus")) {
       $("cloudStatus").textContent =
-        "Online QR sharing is not configured.";
+        state.cloud.url && state.cloud.key
+          ? "Cloud settings loaded."
+          : "Online QR sharing is not configured.";
     }
 
   } catch (e) {
@@ -594,16 +586,14 @@ $("saveCloud").onclick = () => {
 
   if (!url || !key) {
     $("cloudStatus").textContent =
-      "Please enter both Project URL and Publishable Key.";
-
+      "Enter both Project URL and anon/publishable key.";
     toast("Missing Supabase details.");
     return;
   }
 
   if (!/^https:\/\/[a-zA-Z0-9-]+\.supabase\.co$/.test(url)) {
     $("cloudStatus").textContent =
-      "Invalid Project URL. Check your Supabase Project URL.";
-
+      "Invalid Project URL. Copy the Project URL from Supabase Settings → API.";
     toast("Invalid Project URL.");
     return;
   }
@@ -616,126 +606,133 @@ $("saveCloud").onclick = () => {
   );
 
   $("cloudStatus").textContent =
-    "Cloud settings saved successfully. Test with a new session.";
+    "Settings saved. Bucket: " + SUPABASE_BUCKET;
 
   toast("QR settings saved!");
 };
 
+// SUPABASE UPLOAD
 async function uploadCloud(record) {
   const { url, key } = state.cloud;
 
   if (!url || !key) {
     $("saveStatus").textContent =
-      "Photo saved in this browser. Add Supabase details in Settings to enable QR delivery.";
-
+      "Photo saved in this browser only. Add Supabase details in Settings.";
     return null;
   }
 
   try {
-    const blob = await (await fetch(record.image)).blob();
-
     const path =
       `${new Date().toISOString().slice(0, 10)}/` +
       `${record.id}-${Math.random().toString(36).slice(2, 8)}.jpg`;
 
-    const upload = await fetch(
-      `${url}/storage/v1/object/booth-photos/${path}`,
-      {
-        method: "POST",
-        headers: {
-          apikey: key,
-          Authorization: `Bearer ${key}`,
-          "Content-Type": "image/jpeg",
-          "x-upsert": "false"
-        },
-        body: blob
-      }
-    );
+    const endpoint =
+      `${url}/storage/v1/object/${encodeURIComponent(SUPABASE_BUCKET)}/${path}`;
+
+    const upload = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "image/jpeg",
+        "x-upsert": "false"
+      },
+      body: currentCanvasBlob
+    });
 
     if (!upload.ok) {
-      throw new Error(await upload.text());
+      throw new Error(
+        `Supabase upload ${upload.status}: ${await upload.text()}`
+      );
     }
 
     const publicUrl =
-      `${url}/storage/v1/object/public/booth-photos/${path}`;
+      `${url}/storage/v1/object/public/${encodeURIComponent(SUPABASE_BUCKET)}/${path}`;
+
+    // Check if the uploaded image can be opened publicly.
+    const check = await fetch(publicUrl);
+
+    if (!check.ok) {
+      throw new Error(
+        `Upload succeeded but public URL returned ${check.status}. Check bucket PUBLIC setting and read access.`
+      );
+    }
 
     $("saveStatus").textContent =
-      "Finished photo uploaded. QR is ready to share anywhere.";
+      "Photo uploaded successfully. Generating QR...";
 
     return publicUrl;
 
   } catch (e) {
-    $("saveStatus").textContent =
-      "Photo saved in this browser, but cloud upload failed. Check Supabase settings and internet.";
+    console.error("Supabase error:", e);
 
-    console.error(e);
+    $("saveStatus").textContent =
+      "Cloud upload failed: " + e.message;
 
     return null;
   }
 }
 
-// =====================================
-// QR CODE GENERATOR
-// =====================================
-
+// QR CODE
 async function makeQr(photoUrl) {
-  $("qrCode").innerHTML = "";
+  const qr = $("qrCode");
+  qr.innerHTML = "";
 
   if (!photoUrl) {
     $("qrStatus").textContent =
-      "QR unavailable. Check internet and Supabase settings.";
+      "QR not generated. Check the Supabase upload error above.";
+    return;
+  }
 
+  if (typeof QRCode === "undefined" || !QRCode.toCanvas) {
+    $("qrStatus").textContent =
+      "QR library did not load. Refresh the website and check internet.";
+    console.error("QRCode library missing.");
     return;
   }
 
   try {
-    const viewer = new URL(
-      "view.html",
-      window.location.href
-    );
+    const canvas = document.createElement("canvas");
 
-    viewer.searchParams.set("photo", photoUrl);
-
-    const canvas = await QRCode.toCanvas(viewer.href, {
-      width: 190,
-      margin: 1,
+    await QRCode.toCanvas(canvas, photoUrl, {
+      width: 220,
+      margin: 2,
+      errorCorrectionLevel: "M",
       color: {
         dark: "#211f24",
         light: "#ffffff"
       }
     });
 
-    $("qrCode").appendChild(canvas);
+    qr.appendChild(canvas);
 
     $("qrStatus").textContent =
-      "Scan with any phone. Mobile data or Wi-Fi both work.";
+      "QR READY! Scan using mobile data or Wi-Fi.";
 
   } catch (e) {
-    console.error(e);
-    $("qrStatus").textContent = "Could not create QR code.";
+    console.error("QR error:", e);
+    $("qrStatus").textContent =
+      "QR generation failed: " + e.message;
   }
 }
 
-// =====================================
 // DOWNLOAD AND PRINT
-// =====================================
-
 $("downloadResult").onclick = () => {
-  downloadData(
-    state.currentResult,
-    `clickler-${Date.now()}.jpg`
-  );
+  if (state.currentResult) {
+    downloadData(state.currentResult, `clickler-${Date.now()}.jpg`);
+  }
 };
 
 function downloadData(data, name) {
   const a = document.createElement("a");
-
   a.href = data;
   a.download = name;
   a.click();
 }
 
 $("printResult").onclick = () => {
+  if (!state.currentResult) return;
+
   const w = window.open("", "_blank");
 
   if (!w) {
@@ -764,18 +761,20 @@ $("printResult").onclick = () => {
   w.document.close();
 };
 
-// =====================================
 // GIF CREATOR
-// =====================================
-
 $("makeGif").onclick = () => {
   if (!window.gifshot) {
-    toast("GIF library did not load. Check internet connection.");
+    toast("GIF library did not load.");
+    return;
+  }
+
+  if (!state.photos.length) {
+    toast("No session photos available.");
     return;
   }
 
   $("makeGif").disabled = true;
-  $("makeGif").textContent = "CREATING GIF…";
+  $("makeGif").textContent = "CREATING GIF...";
 
   gifshot.createGIF({
     images: state.photos,
@@ -791,7 +790,6 @@ $("makeGif").onclick = () => {
 
     if (!obj.error) {
       state.gifUrl = obj.image;
-
       $("downloadGif").classList.remove("hidden");
 
       $("downloadGif").onclick = () => {
@@ -804,15 +802,13 @@ $("makeGif").onclick = () => {
       toast("Your GIF is ready!");
 
     } else {
-      toast("Could not create GIF from these photos.");
+      console.error(obj.error);
+      toast("Could not create GIF.");
     }
   });
 };
 
-// =====================================
 // GALLERY
-// =====================================
-
 function renderGallery() {
   const list = getLocal();
 
@@ -848,14 +844,12 @@ function renderGallery() {
 
     const dl = document.createElement("button");
     dl.textContent = "DOWNLOAD";
-
     dl.onclick = () => {
       downloadData(item.image, `clickler-${item.id}.jpg`);
     };
 
     const pr = document.createElement("button");
     pr.textContent = "PRINT";
-
     pr.onclick = () => {
       const w = window.open("");
 
@@ -864,7 +858,6 @@ function renderGallery() {
           <img src="${item.image}" style="max-width:100%"
           onload="window.print()">
         `);
-
         w.document.close();
       }
     };
@@ -876,10 +869,7 @@ function renderGallery() {
   });
 }
 
-// =====================================
 // LOGO UPLOAD
-// =====================================
-
 async function loadLogo(file) {
   state.logo = await fileData(file);
 
@@ -904,10 +894,7 @@ $("removeLogo").onclick = () => {
   drawTemplatePreview();
 };
 
-// =====================================
 // INITIALIZATION
-// =====================================
-
 loadCloudSettings();
 
 $("galleryCount").textContent = getLocal().length;
